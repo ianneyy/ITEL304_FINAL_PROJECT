@@ -218,6 +218,7 @@
                         </g>
                     </svg><span>Sales</span></a>
             </div>
+
             <div class="nav-button"><a href="{{ url('wishlist') }}" style="text-decoration: none; color: inherit;">
 
                     <svg xmlns="http://www.w3.org/2000/svg" width="1.3em" height="1.3em" viewBox="0 0 24 24">

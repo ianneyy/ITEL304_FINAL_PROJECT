@@ -4,20 +4,14 @@ namespace App\Http\Controllers;
 
 use App\Models\Uniforms;
 use Illuminate\Http\Request;
-use App\Http\Requests\StorePostRequest;
 use Illuminate\Support\Facades\DB;
-use App\Http\Requests\UpdatePostRequest;
-use App\Models\Student;
 use Illuminate\Support\Facades\File;
-use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Log;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
 
 use App\Models\Product;
-use App\Models\ProductVariation;
-use App\Models\ProductVariationSize;
-
+use Illuminate\Support\Facades\Http;
 
 class UniformsController extends Controller
 {
@@ -76,220 +70,120 @@ class UniformsController extends Controller
     //     //
     // }
 
-    public function showUniforms(){
-        $data = DB::table('products')->get();
+    public function showUniforms()
+    {
+
+        // requesting info in the api
+        $response = Http::get('http://127.0.0.1:8000/api/requestLandingPage');
+
+        $data = $response->json();
+
         return view('pages.uniforms', compact('data'));
-
-        // requesting info in the api
-        // $response = Http::get('http://127.0.0.1:8000/api/requestLandingPage');   
-         
-        // $data_recieved = $response->json();
-
-        // return view('pages.uniforms', compact('data_recieved'));
     }
-    
-    public function showUniformsTable(){
-      
-        $data = Product::with('variations.sizes')->get();
-       
+
+    public function showUniformsTable()
+    {
+        // requesting info in the api
+        $response = Http::get('http://127.0.0.1:8000/api/requestAdminInventory');
+
+        $data = $response->json();
+
         return view('admin.inventory', compact('data'));
-
-        // requesting info in the api
-        // $response = Http::get('http://127.0.0.1:8000/api/requestAdminInventory');   
-         
-        // $data_recieved = $response->json();
-
-        // return view('admin.inventory', compact('data_recieved'));
     }
-    
-    public function showAddForm(){
+
+    public function showAddForm()
+    {
         return view('admin.add_uniforms');
     }
 
     public function addUniform(Request $request)
     {
-        Log::info($request);
-        $imagePath = null;
-        if ($request->has('image_url')) {
+        // requesting info in the api
+
+        dd($request->input('variations'));
+
+
+        $image_url = null;
+        if ($request->hasFile('image_url')) {
             $file = $request->file('image_url');
             $filename = $file->getClientOriginalName();
             $path = 'img/';
             $file->move($path, $filename);
-          
-            $imagePath = $path . $filename;
+            $image_url = $path . $filename;
         }
 
-        // Insert product
-        $productId = DB::table('products')->insertGetId([
-            'image_url' => $imagePath,
-            'name' => $request->input('product_name'),
-            'description' => $request->input('description'),
+        $response = Http::post('http://127.0.0.1:8000/api/requestAdminAddUniform', [
+            'image_url' => $image_url,
+            'product_name' => $request->input('product_name'),
             'price' => $request->input('price'),
-            'stock' => $request->input('stocks'),
-            'created_at' => now(),
-            'updated_at' => now(),
+            'stocks' => $request->input('product_stock'),
+            'description' => $request->input('description'),
+            'variations' => $request->input('variations') ?? [],
+            [],
+            // Add more fields if there are any other form inputs
         ]);
 
-        $variations = $request->input('variations', []);
-
-        Log::info($variations);
-        Log::info($request->file('variations'));
-        // Insert each variation with sizes
-        foreach ($variations as $index => $variation) {
-       
-             $imageFilePath = null;
-
-             if ($request->hasFile('variations.' . $index . '.sub_image_url')) {
-            $subfile = $request->file('variations.' . $index . '.sub_image_url');
-
-        if ($subfile->isValid()) {
-            $subfilename = time() . '_' . $subfile->getClientOriginalName();
-            $filepath = 'img/';
-
-            $subfile->move(public_path($filepath), $subfilename);
-            $imageFilePath = $filepath . $subfilename;
-        } else {
-            Log::warning('Invalid file uploaded for variation ' . $index);
-        }
-    }
-
-            $productVariationId = DB::table('product_variations')->insertGetId([
-                'product_id' => $productId,
-                'variation_type' => $variation['variation-type'] ?? 'N/A',
-                'sub_image_url' => $imageFilePath, 
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]);
-
-
-          
-            foreach ($variation['sizes'] as $key => $size) {
-               
-                DB::table('product_variation_sizes')->insert([
-                    'product_variation_id' => $productVariationId,
-                    'size' => $size ?? 'N/A',
-                    'stock' => $variation['stock'][$key] ?? null, // Now the stock is guaranteed to be an integer
-                    'created_at' => now(),
-                    'updated_at' => now(),
-                ]);
-            }
-        }
+        $data_recieved = $response->json();
 
         return redirect(url('/inventory'));
-
-        // requesting info in the api
-        // $response = Http::post('http://127.0.0.1:8000/api/requestAdminAddUniform');   
-         
-        // $data_recieved = $response->json();
-
-        // return redirect(url('/inventory'));
     }
 
-    
-    public function showEditForm($id){
-        $data = Product::findOrFail($id);
-        
+
+    public function showEditForm($id)
+    {
+        // requesting info in the api
+        $response = Http::get('http://127.0.0.1:8000/api/requestEditAdminUniformForm/' . $id);
+
+        $data = $response->json();
+
         return view('admin.edit_uniforms', compact('data'));
-
-        // requesting info in the api
-        // $response = Http::post('http://127.0.0.1:8000/api/requestEditAdminUniformForm/' . $id);   
-         
-        // $data_recieved = $response->json();
-
-        // return view('admin.edit_uniforms', compact('data_recieved'));
     }
 
-    public function deleteUniforms($productId, $sizeId){
-        // $imagePath = Uniforms::where('id', $id)->pluck('image_url')->first();
-        // File::delete($imagePath);
-
-        DB::table('product_variation_sizes')->where('id', $sizeId)->delete();
-
-        // Optionally, delete the image if no variations or sizes are left for the product
-        $remainingSizes = DB::table('product_variation_sizes')->where('product_variation_id', $productId)->count();
-        if ($remainingSizes == 0) {
-            // $imagePath = DB::table('products')->where('id', $productId)->pluck('image_url')->first();
-            // if ($imagePath && file_exists(public_path($imagePath))) {
-            //     File::delete(public_path($imagePath));
-            // }
-            // You may want to delete the entire product if no sizes remain
-            DB::table('products')->where('id', $productId)->delete();
-        }
-
-
-       
-        
-            return redirect(url('/inventory'));
-
+    public function deleteUniforms($productId, $sizeId)
+    {
         // requesting info in the api
-        // $response = Http::get('http://127.0.0.1:8000/api/requestAdminDeleteUniform/' . $productId . '/' . $sizeId');   
-         
-        // $data_recieved = $response->json();
+        $response = Http::get('http://127.0.0.1:8000/api/requestAdminDeleteUniform/' . $productId . '/' . $sizeId);
 
-        // return redirect(url('/inventory'));
+        $data_recieved = $response->json();
+
+        return redirect(url('/inventory'));
     }
 
-    public function cancelReservation($id){
-        DB::table('student_reservation')
-        ->where('id', $id)
-        ->update(['status' => 'cancelled']);
+    public function cancelReservation($id)
+    {
 
-        return redirect()->back()->with('success','Reservation cancelled successfully');
-    
         // requesting info in the api
-        // $response = Http::get('http://127.0.0.1:8000/api/requestAdminDeleteUniform/' . $productId . '/' . $sizeId');   
-         
-        // $data_recieved = $response->json();
+        $response = Http::get('http://127.0.0.1:8000/api/requestStudentCancelUniform/' . $id);
 
-        // return redirect()->back()->with('success','Reservation cancelled successfully');
-   }
+        $data = $response->json();
+
+        return redirect()->back()->with('success', 'Reservation cancelled successfully');
+    }
 
     public function deleteProduct($productId)
     {
-        $imagePath = Uniforms::where('id', $productId)->pluck('image_url')->first();
-        File::delete($imagePath);
+        // requesting info in the api
+        $response = Http::get('http://127.0.0.1:8000/api/requestAdminDeleteProduct/' . $productId);
 
-        DB::table('products')->where('id', $productId)->delete();
-
-        // Optionally, delete the image if no variations or sizes are left for the product
-
-
-
+        $data_recieved = $response->json();
 
         return redirect(url('/inventory'));
     }
 
-    public function showDetails($id){
-        $data = DB::table('products')
-        ->where('id', $id)
-        ->get();
-
-         $deptData = DB::table('product_variations')
-        ->where('product_id', $id)
-        ->get();
-        $variationIds = $deptData->pluck('id');
-        $sizeData = DB::table('product_variation_sizes')
-        ->whereIn('product_variation_id', $variationIds) // Match against variation IDs
-        ->get();  // Get both 'id' and 'size'
-
-        $sizeData = $sizeData->unique('size');
-        
-        return view('pages.view_details', compact('data','deptData','sizeData'));
-
-        
+    public function showDetails($id)
+    {
         // requesting info in the api
-        // $response = Http::get('http://127.0.0.1:8000/api/requestStudentShowUniformDetails/' . $id);   
-         
-        // $data_recieved = $response->json();
+        $response = Http::get('http://127.0.0.1:8000/api/requestStudentShowUniformDetails/' . $id);
 
-        // return view('pages.view_details', compact('data_recieved'));
-    
+        $data = $response->json();
+
+        return view('pages.view_details', compact('data'));
     }
-    
+
     public function showAnnouncement()
     {
         $data = DB::table('announcement')->get();
-        
+
         $data = $data->reverse();
         // Format the announcement_date for each entry
         $data = $data->map(function ($announcement) {
@@ -314,56 +208,43 @@ class UniformsController extends Controller
 
         // requesting info in the api
         // $response = Http::get('http://127.0.0.1:8000/api/requestStudentAnnouncement');   
-         
+
         // $data_recieved = $response->json();
 
         // return view('pages.announcement', compact('data_recieved'));
     }
-    public function showMessageForm(){
+    public function showMessageForm()
+    {
         $userId = Auth::guard('student')->id();
 
-        $student = DB::table('students')
-        ->where('id', $userId) // Match the ID with the authenticated user's ID
-        ->get();
-
-        return view('pages.contact_us', compact('student'));
-
         // requesting info in the api
-        // $response = Http::get('http://127.0.0.1:8000/api/requestStudentShowMessageForm/' . $userId);   
-         
-        // $data_recieved = $response->json();
+        $response = Http::get('http://127.0.0.1:8000/api/requestStudentShowMessageForm/' . $userId);
 
-        // return view('pages.contact_us', compact('student'));
+        $data = $response->json();
 
+        return view('pages.contact_us', compact('data'));
     }
-    public function addMessage(Request $request){
-
-        Log::info('Incoming request to addMessage', $request->all());
-
-        // Validate input data
-        $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'email' => 'required|email|max:255',
-            'message' => 'required|string',
-        ]);
-        $query = DB::table('contact_us')->insert([
-            'name' => $validated['name'],
-            'email' => $validated['email'],
-            'message' => $validated['message'],
-            'created_at' => now(),
-            'updated_at' => now(),
+    public function addMessage(Request $request)
+    {
+        // requesting info in the api
+        $response = Http::post('http://127.0.0.1:8000/api/requestStudentMessage', [
+            'name' => $request->input('name'),
+            'email' => $request->input('email'),
+            'message' => $request->input('message'),
         ]);
 
-        if($query){
+        $data = $response->json();
 
-        
-            return redirect()->back()->with('success', 'Message sent successfully!');
-        }
-        else
-        {
-            Log::error('engk');
-        }
-       
+        return redirect()->back()->with('success', 'Message sent successfully!');
     }
 
+    public function showSizeGuide()
+    {
+        return view('pages.size_guide');
+    }
+
+    public function showHelp()
+    {
+        return view('pages.help');
+    }
 }

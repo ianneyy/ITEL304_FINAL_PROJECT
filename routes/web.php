@@ -3,7 +3,6 @@
 use App\Http\Controllers\MyReservationController;
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\QrCodeController;
-
 use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\UniformsController;
@@ -12,7 +11,6 @@ use App\Http\Controllers\Student\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\CartController;
 use App\Http\Controllers\SalesController;
 use App\Http\Controllers\WishlistController;
-use Illuminate\Support\Facades\DB;
 
 
 /*
@@ -61,7 +59,9 @@ Route::get('/edit-uniforms-form/{id}', [UniformsController::class, 'showEditForm
 
 Route::post('/update-uniform/{id}', [AdminController::class, 'updateUniform']);
 
-// Route::get('/delete-uniforms/{productId}/{sizeId}', [UniformsController::class, 'deleteUniforms']);
+Route::get('/delete-uniforms/{productId}/{sizeId}', [UniformsController::class, 'deleteUniforms']);
+
+Route::get('/delete-product/{productId}', [UniformsController::class, 'deleteProduct']);
 
 Route::get('/sales', [SalesController::class, 'showSales']);
 
@@ -107,19 +107,15 @@ Route::get('/student/qrcode', [QrCodeController::class, 'showQrCode']);
 
 Route::get('/student/reservation', [MyReservationController::class, 'showMyReservation']);
 
-Route::get('/cancel-reservation/{id}', [UniformsController::class, 'cancelReservation']);
-
 Route::get('/student/view-qr/{id}', [QrCodeController::class, 'showQrCodebyID']);
 
-Route::get('/student/size_guide', function () {
-    return view('pages.size_guide');
-});
+Route::get('/cancel-reservation/{id}', [UniformsController::class, 'cancelReservation']);
+
+Route::get('/student/size_guide', [UniformsController::class, 'showSizeGuide']);
 
 Route::get('/student/announcement', [UniformsController::class, 'showAnnouncement']);
 
-Route::get('/student/help', function () {
-    return view('pages.help');
-});
+Route::get('/student/help', [UniformsController::class, 'showHelp']);
 
 Route::get('/student/contact-us', [UniformsController::class, 'showMessageForm']);
 
@@ -149,11 +145,6 @@ Route::middleware('auth')->group(function () {
 
 
 Route::get('/admin/reservation-details', [AdminController::class, 'getReservationDetails']);
-
-
-// Route::get('/delete-product/{productId}', [UniformsController::class, 'deleteProduct']);
-
-
 
 Route::post('/continue-fill-up', [ReserveController::class, 'sendToFillUpForm']);
 

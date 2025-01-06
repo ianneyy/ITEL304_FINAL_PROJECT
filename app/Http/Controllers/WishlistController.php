@@ -2,20 +2,16 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Validator;
-use App\Models\Uniforms;
-use SimpleSoftwareIO\QrCode\Facades\QrCode;
-use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Http;
 
 class WishlistController extends Controller
 {
     public function deleteWishlist($id)
     {
 
-        DB::table('user_wishlist')->where('id', $id)->delete();
+        $response = Http::get('http://127.0.0.1:8000/api/requestStudentDeleteWishList/' . $id);
+
+        $data = $response->json();
 
         return redirect()->back()->with('success', 'Message sent successfully!');
     }
