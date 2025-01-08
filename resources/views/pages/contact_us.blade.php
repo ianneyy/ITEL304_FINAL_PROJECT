@@ -250,18 +250,29 @@
         <div class="div-form">
             <form action="{{ url('student/contact-us/send-message') }}" method="post">
                 @csrf
-                @foreach ($data['student'] as $s)
+                @if (!empty($data['studend']['name']))
+                    @foreach ($data['student'] as $s)
+                        <div class="form-group">
+                            <label for="name">Name</label>
+                            <input type="text" id="name" name="name" placeholder="Your name" required
+                                value="{{ $s['name'] }}">
+                        </div>
+                        <div class="form-group">
+                            <label for="email">Email</label>
+                            <input type="email" id="email" name="email" placeholder="Your email" required
+                                value="{{ $s['email'] }}">
+                        </div>
+                    @endforeach
+                @else
                     <div class="form-group">
                         <label for="name">Name</label>
-                        <input type="text" id="name" name="name" placeholder="Your name" required
-                            value="{{ $s['name'] }}">
+                        <input type="text" id="name" name="name" placeholder="Your name" required>
                     </div>
                     <div class="form-group">
                         <label for="email">Email</label>
-                        <input type="email" id="email" name="email" placeholder="Your email" required
-                            value="{{ $s['email'] }}">
+                        <input type="email" id="email" name="email" placeholder="Your email" required>
                     </div>
-                @endforeach
+                @endif
                 <div class="form-group">
                     <label for="message">Message</label>
                     <textarea id="message" name="message" placeholder="Your message" required></textarea>

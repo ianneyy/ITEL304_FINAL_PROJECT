@@ -100,7 +100,7 @@ class UniformsController extends Controller
     {
         // requesting info in the api
 
-        dd($request->input('variations'));
+        
 
 
         $image_url = null;
@@ -216,7 +216,7 @@ class UniformsController extends Controller
     public function showMessageForm()
     {
         $userId = Auth::guard('student')->id();
-
+        
         // requesting info in the api
         $response = Http::get('http://127.0.0.1:8000/api/requestStudentShowMessageForm/' . $userId);
 
